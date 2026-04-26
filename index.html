@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CVVRQ3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            image-rendering: crisp-edges;
+        }
+
+        body {
+            background: #0a0f1e;
+            font-family: 'Courier New', 'Consolas', monospace;
+            color: #cfc;
+            padding: 0;
+            position: relative;
+            overflow-x: hidden;
+            padding-top: 55px;
+            padding-bottom: 55px;
+        }
+        /* FULLSCREEN BACKGROUND GIF - Linus */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('/gifs/linus.gif') center center / cover no-repeat;
+            opacity: 0.25;   /* subtle overlay so text remains readable */
+            z-index: -2;
+            pointer-events: none;
+        }
+        /* dark additional overlay to improve contrast */
+        body::after {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            z-index: -1;
+            pointer-events: none;
+        }
+        .marquee-top, .marquee-bottom {
+            position: fixed;
+            left: 0;
+            right: 0;
+            background: #000;
+            border: 1px solid #f00;
+            padding: 6px 0;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+        .marquee-top {
+            top: 0;
+            color: #ffcc00;
+            background: #000000dd;
+        }
+        .marquee-bottom {
+            bottom: 0;
+            color: #0ff;
+            background: #000000cc;
+        }
+        .infinite-random-text {
+            display: inline-block;
+            white-space: nowrap;
+            will-change: transform;
+        }
+        .infinite-random-text span {
+            display: inline-block;
+            padding-right: 80px;
+        }
+        .weather-marquee-content {
+            display: inline-block;
+            white-space: nowrap;
+            will-change: transform;
+        }
+        .scroll-infinite {
+            animation: scroll-left-linear 45s linear infinite;
+        }
+        
+        @keyframes scroll-left-linear {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        
+        .chaos-container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.75);
+            border: 3px ridge #ff00cc;
+            padding: 20px 25px 30px;
+            box-shadow: 12px 12px 0px #00ff99;
+            position: relative;
+            z-index: 2;
+        }
+        .grid-of-pain {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 25px 0;
+        }
+        .left-weird {
+            flex: 2.5;
+            min-width: 260px;
+        }
+        .right-weird {
+            flex: 1.5;
+            min-width: 240px;
+        }
+        .post-card {
+            background: #0f121f;
+            border-left: 6px solid #ffaa44;
+            border-bottom: 2px solid #ffaa44;
+            padding: 18px;
+            margin-bottom: 28px;
+            box-shadow: 5px 5px 0 rgba(255,0,255,0.2);
+        }
+        .post-card h3 {
+            color: #ffaa88;
+            margin-bottom: 8px;
+            font-size: 1.4rem;
+        }
+        .post-card p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+        .post-card small {
+            color: #7f8c8d;
+        }
+        .info-block {
+            background: #090c17;
+            border: 1px solid #33ffcc;
+            padding: 16px;
+            margin-bottom: 25px;
+        }
+        .contact-block {
+            text-align: left;
+            overflow: auto;
+        }
+        .pfp {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid magenta;
+            float: left;
+            margin-right: 18px;
+        }
+        .social-links {
+            margin-top: 10px;
+        }
+        .social-links a {
+            color: #0ff;
+            text-decoration: none;
+            background: #000000aa;
+            display: inline-block;
+            margin: 4px 6px 4px 0;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+        }
+        .social-links a:hover {
+            background: cyan;
+            color: black;
+        }
+        .weird-gallery {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            align-items: center;
+        }
+        .weird-item {
+            background: #00000066;
+            padding: 8px;
+            text-align: center;
+            max-width: 190px;
+        }
+        .weird-item img {
+            max-width: 100%;
+            border: 1px solid gray;
+        }
+        .weird-item p {
+            font-size: 0.7rem;
+            margin-top: 6px;
+        }
+        .badges-footer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0 10px;
+            padding-top: 15px;
+            border-top: 1px dashed #ff44aa;
+        }
+        .badges-footer img {
+            width: 88px;
+            height: 31px;
+            border: 1px solid white;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #888;
+            margin-top: 10px;
+        }
+        .fake-notif {
+            position: fixed;
+            bottom: 85px;
+            right: 20px;
+            background: #1e1e2f;
+            border-left: 6px solid #ffcc00;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            font-weight: bold;
+            color: #ffd966;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            z-index: 10000;
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+            transition: 0.2s;
+            animation: slideInNotif 0.4s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid gold;
+        }
+        .fake-notif:hover {
+            background: #2a2a3c;
+            transform: scale(1.02);
+            border-left-width: 8px;
+        }
+        .notif-icon {
+            font-size: 28px;
+        }
+        .notif-text {
+            font-size: 1rem;
+        }
+        .notif-text small {
+            font-size: 0.7rem;
+            color: #aaa;
+        }
+        @keyframes slideInNotif {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        @media (max-width: 700px) {
+            .left-weird, .right-weird { flex: 100%; }
+            body { padding-top: 70px; padding-bottom: 70px; }
+            .fake-notif { bottom: 100px; right: 12px; padding: 8px 14px; }
+        }
+    </style>
+</head>
+<body>
+<div class="marquee-top">
+    <div class="infinite-random-text scroll-infinite" id="topMarqueeTrack">
+        <span id="randomPhrasesContainer">loading dark wisdom...</span>
+    </div>
+</div>
+<div class="marquee-bottom">
+    <div class="weather-marquee-content scroll-infinite" id="bottomMarqueeTrack">
+        <span id="weatherPhrase">NEW JERSEY: loading weather data...</span>
+    </div>
+</div>
+
+<div class="chaos-container">
+    <h1 style="font-size: 2.5rem; text-align: center; letter-spacing: -2px;">CVVRQ3</h1>
+    <p style="text-align: center; border-bottom: 1px solid #3f3; padding-bottom: 8px;">[ WELCOME TO MY WEBSITE :3 ]</p>
+    <p style="text-align: center; margin: 12px 0; font-style: italic;">
+        "This is another smol text, i dunno what to say. And i really like BSOD's"
+    </p>
+
+    <div class="grid-of-pain">
+        <div class="left-weird">
+			<div class="post-card">
+                <h3>yodudecheckoutthis360noscope.mp4</h3>
+                <video src="yodudecheckoutthis360noscope.mp4" controls width="640" height="360">
+					<source src="yodudecheckoutthis360noscope.mp4" type="video/mp4">
+					Ваш браузер не поддерживает видео.
+				</video>
+            </div>
+			<div class="post-card">
+                <h3>Yay, my new record!</h3>
+                <p>20.04.2026, i've got 18 bsods today!</p>
+            </div>
+            <div class="post-card">
+                <h3>First post</h3>
+                <p>i've just created this website i dunno what to place here lol</p>
+            </div>
+        </div>
+        <div class="right-weird">
+            <div class="info-block contact-block">
+                <img src="pfp.png" alt="pfp" class="pfp">
+                <h2>CVVRQ3</h2>
+                <div class="social-links">
+                    <a href="https://discord.com/users/@cvvrq4" target="_blank">discord: @cvvrq4</a>
+                    <a href="https://steamcommunity.com/id/cvvrq3/" target="_blank">steam</a>
+                    <a href="https://www.youtube.com/@cvvrq3" target="_blank">youtube</a>
+                    <a href="https://github.com/cvvrq3" target="_blank">github</a>
+                    <a href="https://soundcloud.com/cvvrq3" target="_blank">soundcloud</a>
+                </div>
+                <p style="margin-top: 12px; font-size: 0.8rem;">I use Microslop Windows 10 BTW. For now.</p>
+            </div>
+			<div class="info-block">
+                <h3>BSOD COUNTER (since 2026-04-15)</h3>
+                <p>total recorded: <strong id="bsodCount">??</strong></p>
+                <p><a href="bsod.html">view full bsod timeline -</a></p>
+                <script>
+                    document.getElementById('bsodCount').innerText = 53;
+                </script>
+            </div>
+			<div class="info-block">
+                <h3>SOME INFO ABT ME:</h3>
+                <p>- Male</p>
+				<p>- Minor</p>
+				<p>- Engineer</p>
+				<p>- BrickRigs is my fav game</p>
+				<p>- Lazy AF</p>
+				<p>- I like cookies</p>
+            </div>
+            <div class="info-block">
+                <h3 style="margin-bottom: 8px;">some gifs here:</h3>
+                <div class="weird-gallery">
+                    <div class="weird-item">
+                        <img src="cat.png" alt="cat">
+                    </div>
+					<div class="weird-item">
+                        <img src="sillycat.gif" style="max-width: 170px;">
+                    </div>
+					<div class="weird-item">
+                        <img src="6.gif" style="max-width: 160px;">
+                    </div>
+					<div class="weird-item">
+                        <img src="4.gif" style="max-width: 160px;">
+                    </div>
+					<div class="weird-item">
+                        <img src="5.gif" style="max-width: 160px;">
+                    </div>
+                    <div class="weird-item">
+                        <img src="3.gif" style="max-width: 160px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="badges-footer">
+        <a href="#" onclick="alert('anti-nft stance active'); return false;"><img src="badges/antinft.png" alt="anti-nft"></a>
+        <a href="#" onclick="alert('this page contains javascript'); return false;"><img src="badges/jswarn.gif" alt="js warning"></a>
+        <a href="https://ooo.eeeee.ooo/" target="_blank"><img src="badges/miku.png" alt="miku approved"></a>
+    </div>
+
+    <footer>
+        this site contains javascript and questionable opinions. no ichthyosaurs were harmed in the making, and no ai was used.<br>
+        CVVRQ3 - 2026
+    </footer>
+</div>
+<div id="freeRobuxNotif" class="fake-notif">
+    <div class="notif-icon">💰</div>
+    <div class="notif-text">
+        🎉 FREE ROBUX GIVEAWAY! 🎉<br>
+        <small>Click here to claim 10,000 Robux →</small>
+    </div>
+</div>
+
+<script>
+    const phrasePool = [
+        "remember to take breaks and stay hydrated!",
+        "did you make sure to lock all the entrances to your home?",
+        "there is a man behind you.",
+        "h̷͍͓͔͠e̶͎̝̙͋ ̴̩̩͐̅̂̒ẃ̸̛̲̜͇̚͝ă̸͈͛͗͝t̵̡̲̳͋͑̚c̴̱͊̆̈́̚ͅh̴͈͐͝e̵̢̬̔̅̕͜s̸͕̏",
+        "nuh uh",
+        "blink twice if you’re okay",
+        "check your pulse",
+        "your screen is brighter than you think",
+        "did you hear that?",
+        "don’t turn around too fast",
+        "the front door wasn’t fully closed",
+        "your phone pinged three times",
+        "someone typed but didn’t send",
+        "your reflection moved late",
+        "the chair creaked by itself",
+        "you haven’t blinked in a while",
+        "there’s a second shadow now",
+        "check the back seat of your mind",
+        "your last sip of water was hours ago",
+        "the thermostat just dropped",
+        "footsteps in the hallway stopped",
+        "your neck feels cold",
+        "you forgot to lock the bathroom window",
+        "the man behind you hasn’t blinked either",
+        "your keyboard has a sticky key you never noticed",
+        "someone is humming your name",
+        "your left eye twitched",
+        "the lights flickered once",
+        "your chair is slightly crooked",
+        "you heard breathing that wasn’t yours",
+        "the clock skipped a second",
+        "your spine wants to turn around",
+        "don’t.",
+        "drink water slowly",
+        "lock the door again",
+        "check the closet",
+        "check the attic",
+        "check under your bed",
+        "check inside your memory of how you got here",
+        "the man behind you is patient",
+        "he knows you’ll look eventually",
+        "but first - take a break. stay hydrated.",
+        "system32 feels lonely",
+        "you’re doing great, keep going",
+        "insert coin to continue",
+        "do not redeem the free robux",
+        "your mouse cursor moved on its own",
+        "ALT+F4 for secret",
+        "did you restart? no?",
+        "sudo make me a sandwich",
+        "BSOD incoming... or not",
+        "new jersey weather is watching you"
+    ];
+    function buildRandomPhraseString(length = 25) {
+        let result = [];
+        for (let i = 0; i < length; i++) {
+            let randomIndex = Math.floor(Math.random() * phrasePool.length);
+            result.push(phrasePool[randomIndex]);
+        }
+        return result.join("  ✦  ");
+    }
+    function setupInfiniteMarqueeTop() {
+        const track = document.getElementById('topMarqueeTrack');
+        if (!track) return;
+        let mainContent = buildRandomPhraseString(40);
+        track.innerHTML = `<span>${mainContent}</span><span style="margin-left: 60px;">${buildRandomPhraseString(40)}</span>`;
+        track.classList.add('scroll-infinite');
+        setInterval(() => {
+            if (track) {
+                let newFirst = buildRandomPhraseString(40);
+                let newSecond = buildRandomPhraseString(40);
+                track.innerHTML = `<span>${newFirst}</span><span style="margin-left: 60px;">${newSecond}</span>`;
+            }
+        }, 90000);
+    }
+    async function fetchNewJerseyWeather() {
+        const lat = 40.0583;
+        const lon = -74.4057;
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m&timezone=America%2FNew_York`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('weather fetch failed');
+            const data = await response.json();
+            if (data && data.current_weather) {
+                const tempC = data.current_weather.temperature;
+                const tempF = (tempC * 9/5 + 32).toFixed(1);
+                const windspeed = data.current_weather.windspeed;
+                const weatherCode = data.current_weather.weathercode;
+                let condition = "Clear";
+                if (weatherCode === 1 || weatherCode === 2) condition = "Partly cloudy";
+                else if (weatherCode === 3) condition = "Overcast";
+                else if (weatherCode >= 45 && weatherCode <= 48) condition = "Fog";
+                else if (weatherCode >= 51 && weatherCode <= 67) condition = "Drizzle/Rain";
+                else if (weatherCode >= 71 && weatherCode <= 77) condition = "Snow";
+                else if (weatherCode >= 80 && weatherCode <= 82) condition = "Rain showers";
+                else if (weatherCode >= 95 && weatherCode <= 99) condition = "Thunderstorm";
+                else condition = "Mixed";
+                const now = new Date();
+                const options = { weekday: 'short', hour: '2-digit', minute:'2-digit', timeZone: 'America/New_York' };
+                const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', timeZone:'America/New_York' });
+                const dayStr = now.toLocaleDateString('en-US', { weekday:'short' });
+                return `NEW JERSEY REAL-TIME: ${condition}  •  ${tempC}°C / ${tempF}°F  •  Wind ${windspeed} km/h  •  ${dayStr} ${timeStr}  ||  7-DAY FORECAST: MON 18C/64F | TUE 22C/71F | WED 19C/66F RAIN | THU 16C/60F STORM | FRI 21C/69F | SAT 24C/75F | SUN 20C/68F  HUMIDITY 73% WIND 12MPH  •  stay weird, New Jersey  •  `;
+            } else {
+                return "NEW JERSEY: Weather data unavailable - but assume chaos. 18C/64F approx. check window!  •  ";
+            }
+        } catch (error) {
+            console.warn("Weather API error, using fallback");
+            return "NEW JERSEY: Weather data unavailable - but assume chaos. 18C/64F approx. check window!  •  ";
+        }
+    }
+    
+    async function updateBottomWeatherMarquee() {
+        const weatherSpan = document.getElementById('weatherPhrase');
+        if (!weatherSpan) return;
+        const weatherText = await fetchNewJerseyWeather();
+        const trackBottom = document.getElementById('bottomMarqueeTrack');
+        if (trackBottom) {
+            const finalMessage = weatherText;
+            trackBottom.innerHTML = `<span>${finalMessage}</span><span style="margin-left: 60px;">${finalMessage}</span>`;
+            trackBottom.classList.add('scroll-infinite');
+        }
+    }
+    function initWeatherAndRefresh() {
+        updateBottomWeatherMarquee();
+        setInterval(() => {
+            updateBottomWeatherMarquee();
+        }, 10 * 60 * 1000);
+    }
+    function setupFakeRobuxNotification() {
+        const notifElement = document.getElementById('freeRobuxNotif');
+        if (notifElement) {
+            notifElement.addEventListener('click', (e) => {
+                e.preventDefault();
+                // legendary rickroll link
+                window.location.href = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+            });
+        }
+    }
+    function enhanceTopMarqueeRandomOrder() {
+        setupInfiniteMarqueeTop();
+        const track = document.getElementById('topMarqueeTrack');
+        if (track) {
+            track.style.whiteSpace = 'nowrap';
+        }
+    }
+    function initAll() {
+        enhanceTopMarqueeRandomOrder();
+        initWeatherAndRefresh();
+        setupFakeRobuxNotification();
+        const notif = document.getElementById('freeRobuxNotif');
+        if(notif) {
+            setTimeout(() => {
+                notif.style.transform = 'scale(1.02)';
+                setTimeout(() => { if(notif) notif.style.transform = ''; }, 300);
+            }, 1000);
+        }
+    }
+    window.addEventListener('DOMContentLoaded', initAll);
+    const style = document.createElement('style');
+    style.textContent = `
+        .scroll-infinite {
+            display: inline-block;
+            animation: scroll-left-linear 45s linear infinite;
+        }
+        @keyframes scroll-left-linear {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .marquee-top .infinite-random-text, .marquee-bottom .weather-marquee-content {
+            display: inline-block;
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+</body>
+</html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>realistic ascii rain / snow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0a0f1e 0%, #03060c 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', 'Fira Code', monospace;
+        }
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            filter: drop-shadow(0 0 2px rgba(100,200,255,0.2));
+        }
+    </style>
+</head>
+<body>
+<canvas id="asciiCanvas"></canvas>
+<script>
+    (function() {
+        // ---------- elegant ASCII rain/snow ----------
+        // smooth, organic drift, no sharp terminal stepping
+        
+        const canvas = document.getElementById('asciiCanvas');
+        let ctx = canvas.getContext('2d');
+        
+        // character set: rain -> heavier vertical, snow -> lighter floating
+        // mix both with soft transition based on "mode" (0..1)  0=rain, 1=snow
+        // but we make it feel like a hybrid: misty, drifting, elegant
+        
+        const rainChars = "│:!⏐⋮┇┊┋";
+        const snowChars = "❄︎❅❆⋆";
+        const allSoft = "·•∙";
+        
+        // combine to create realistic fall + sway
+        let particles = [];
+        let width = 0, height = 0;
+        let cols = 0, rows = 0;
+        let fontSize = 20;     // base, will adjust on resize
+        let charWidth = 11;    // approximate monospace ratio
+        let charHeight = 20;
+        
+        // config
+        let DENSITY = 0.22;      // particles per cell
+        let WIND = 0.28;         // gentle horizontal drift
+        let SNOWINESS = 0.65;    // 0=heavy rain, 1=fluffy snow, dynamic
+        
+        let timeAcc = 0;
+        let lastTimestamp = 0;
+        
+        // helpers
+        function randomRange(min, max) {
+            return min + Math.random() * (max - min);
+        }
+        
+        // particle class: smooth floating motion
+        class AsciiDrop {
+            constructor(col, row) {
+                this.col = col;           // grid column (float)
+                this.row = row;           // grid row (float)
+                this.speedY = randomRange(1.2, 3.8);
+                this.speedX = randomRange(-0.45, 0.65) + (Math.random() - 0.5) * WIND * 1.4;
+                // wind influence accumulates
+                this.charIndex = Math.floor(Math.random() * rainChars.length);
+                this.life = 1.0;          // unused, but for glow feel
+                this.sizeJitter = randomRange(0.85, 1.2);
+                this.snowDrift = Math.random() > 0.65;   // snow-like particles drift more
+                this.flicker = Math.random() * Math.PI * 2;
+            }
+            
+            update(deltaTime, windForce, snowMix) {
+                // delta smoothing (seconds)
+                let dt = Math.min(deltaTime, 0.033); // cap
+                // base speed: rain falls faster, snow falls slower
+                let baseSpeed = this.speedY;
+                if (snowMix > 0.4) {
+                    // snow effect: slower, more lateral
+                    let snowFactor = Math.min(1.0, snowMix * 1.4);
+                    baseSpeed = this.speedY * (1.0 - snowFactor * 0.75);
+                } else {
+                    baseSpeed = this.speedY;
+                }
+                
+                let moveY = baseSpeed * dt * 18;
+                let moveX = (this.speedX + windForce * (0.6 + this.snowDrift * 1.2)) * dt * 12;
+                
+                this.row += moveY;
+                this.col += moveX;
+                
+                // slight wave / sin sway for organic feel
+                if (snowMix > 0.3) {
+                    this.col += Math.sin(timeAcc * 1.7 + this.row * 0.4) * 0.012 * dt * 25;
+                }
+                
+                // wrap-around logic
+                if (this.row > rows + 2) {
+                    this.row = -1.5;
+                    this.col = Math.random() * cols;
+                    // reassign character type based on snowiness
+                    this.updateCharType(snowMix);
+                    // reset speed to keep variety
+                    this.speedY = randomRange(1.0, snowMix > 0.5 ? 2.2 : 3.5);
+                    this.speedX = randomRange(-0.5, 0.7) + (Math.random() - 0.5) * windForce;
+                }
+                if (this.col < -2) this.col = cols + 1;
+                if (this.col > cols + 2) this.col = -1;
+                if (this.row < -2) this.row = rows + 1;
+                
+                // dynamic character change for subtle texture
+                this.flicker += 0.03;
+                if (Math.random() < 0.005) {
+                    this.updateCharType(snowMix);
+                }
+            }
+            
+            updateCharType(snowMix) {
+                let isSnowy = (Math.random() < snowMix * 0.9) || (snowMix > 0.6 && Math.random() > 0.5);
+                if (isSnowy) {
+                    let set = snowChars + allSoft;
+                    this.charIndex = Math.floor(Math.random() * set.length);
+                    this.charIsSnow = true;
+                } else {
+                    let set = rainChars + "│╎╏";
+                    this.charIndex = Math.floor(Math.random() * set.length);
+                    this.charIsSnow = false;
+                }
+            }
+            
+            getChar(snowMix) {
+                // occasionally live update based on global snowiness
+                if (Math.random() < 0.008) this.updateCharType(snowMix);
+                let charSet;
+                let useSnow = (this.charIsSnow !== undefined) ? this.charIsSnow : (snowMix > 0.5);
+                if (useSnow || snowMix > 0.55) {
+                    charSet = snowChars + allSoft + "❋✻";
+                    let idx = this.charIndex % charSet.length;
+                    return charSet[idx];
+                } else {
+                    charSet = rainChars + "┃╿";
+                    let idx = this.charIndex % charSet.length;
+                    return charSet[idx];
+                }
+            }
+            
+            getAlpha(snowMix, rowPos) {
+                // depth & fade edges + smooth mist
+                let distFromCenter = Math.abs(rowPos - rows/2) / (rows/2);
+                let baseAlpha = 0.7 + 0.3 * Math.sin(this.flicker);
+                if (snowMix > 0.5) baseAlpha = 0.85 + 0.15 * Math.sin(this.flicker * 1.5);
+                // bottom/top fade
+                let edgeFade = 1.0;
+                if (rowPos < 1) edgeFade = rowPos * 0.6;
+                if (rowPos > rows - 1) edgeFade = (rows - rowPos) * 0.25 + 0.5;
+                let finalAlpha = Math.min(0.98, baseAlpha * edgeFade * (0.7 + snowMix * 0.3));
+                return Math.max(0.35, finalAlpha);
+            }
+        }
+        
+        function initParticles() {
+            particles = [];
+            let totalCells = cols * rows;
+            let particleCount = Math.floor(totalCells * DENSITY);
+            particleCount = Math.min(particleCount, 1800);
+            particleCount = Math.max(particleCount, 380);
+            
+            for (let i = 0; i < particleCount; i++) {
+                let col = Math.random() * cols;
+                let row = Math.random() * rows;
+                let p = new AsciiDrop(col, row);
+                p.speedY = randomRange(0.9, 3.6);
+                p.speedX = randomRange(-0.6, 0.8);
+                p.updateCharType(SNOWINESS);
+                p.flicker = Math.random() * 2 * Math.PI;
+                particles.push(p);
+            }
+        }
+        
+        // resize handler: recalc grid, preserve feel
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // dynamic font size based on screen width (smooth)
+            fontSize = Math.min(28, Math.max(14, Math.floor(width / 55)));
+            charWidth = fontSize * 0.61;
+            charHeight = fontSize * 1.05;
+            
+            cols = Math.floor(width / charWidth) + 4;
+            rows = Math.floor(height / charHeight) + 3;
+            
+            // re-init particles preserving number
+            if (particles.length > 0) {
+                let oldCount = particles.length;
+                initParticles();
+                if (particles.length !== oldCount) {
+                    // adjust
+                }
+            } else {
+                initParticles();
+            }
+            
+            // set canvas context text style
+            if (ctx) {
+                ctx.font = `${fontSize}px 'Courier New', 'Fira Code', monospace`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+            }
+        }
+        
+        // dynamic wind & snowiness based on time / mouse (subtle)
+        let mouseX = 0.5;
+        let targetSnow = 0.48;   // start with atmospheric mix
+        let currentSnow = 0.48;
+        let windOffset = 0;
+        
+        function updateWeather(deltaTime) {
+            // smoothly drift between rain and snow, realistic gradient
+            let t = performance.now() * 0.0006;
+            // natural sine wave + mouse influence
+            let autoMix = 0.45 + 0.25 * Math.sin(t * 0.31);
+            let mouseInfluence = (mouseX - 0.5) * 0.35;
+            targetSnow = Math.min(0.92, Math.max(0.15, autoMix + mouseInfluence));
+            // smooth transition
+            currentSnow += (targetSnow - currentSnow) * deltaTime * 1.8;
+            SNOWINESS = currentSnow;
+            
+            // wind: gentle breath
+            let windBase = 0.2 + 0.3 * Math.sin(t * 0.22);
+            let mouseWind = (mouseX - 0.5) * 0.45;
+            WIND = Math.min(0.85, Math.max(-0.65, windBase + mouseWind));
+        }
+        
+        // animation loop with smooth delta time
+        let lastFrameTime = 0;
+        function animate(nowMs) {
+            requestAnimationFrame(animate);
+            if (!ctx) return;
+            let delta = Math.min(0.033, (nowMs - lastFrameTime) / 1000);
+            if (delta <= 0) { lastFrameTime = nowMs; return; }
+            lastFrameTime = nowMs;
+            
+            timeAcc += delta;
+            updateWeather(delta);
+            
+            // clear canvas with deep gradient (transparent mist)
+            ctx.clearRect(0, 0, width, height);
+            
+            // radial gradient for atmospheric depth
+            let grad = ctx.createLinearGradient(0, 0, width*0.6, height);
+            grad.addColorStop(0, '#050a14');
+            grad.addColorStop(0.7, '#010208');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, width, height);
+            
+            // add soft starlight effect
+            ctx.fillStyle = 'rgba(40, 60, 100, 0.12)';
+            for(let i=0;i<80;i++) {
+                // just ambiance
+            }
+            
+            // update particles positions & draw
+            let windForce = WIND;
+            
+            for (let p of particles) {
+                p.update(delta, windForce, SNOWINESS);
+            }
+            
+            // drawing: each character with subtle glow and opacity
+            // to keep performance we draw each particle individually for smooth positioning
+            ctx.font = `${fontSize}px 'Courier New', 'Fira Code', monospace`;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            
+            for (let p of particles) {
+                let x = p.col * charWidth;
+                let y = p.row * charHeight;
+                if (x < -charWidth || x > width + charWidth || y < -charHeight || y > height + charHeight*1.5) continue;
+                
+                let ch = p.getChar(SNOWINESS);
+                let alpha = p.getAlpha(SNOWINESS, p.row);
+                
+                // color: rain cold blue / snow white-ice transition
+                let mixSnow = SNOWINESS;
+                let r, g, b;
+                if (mixSnow > 0.5) {
+                    // snowy ethereal
+                    let ice = 180 + 75 * Math.sin(p.flicker * 0.9);
+                    r = 210 + Math.sin(p.col) * 25;
+                    g = 230 + Math.cos(p.row) * 20;
+                    b = 255;
+                } else {
+                    // rainy deep cyan
+                    let intensity = 0.5 + 0.5 * Math.sin(p.flicker * 1.2);
+                    r = 70 + 40 * intensity;
+                    g = 140 + 80 * intensity;
+                    b = 210 + 45 * intensity;
+                }
+                
+                // apply snowmix for color
+                let finalR = r * (1 - mixSnow*0.4) + 200 * mixSnow;
+                let finalG = g * (1 - mixSnow*0.2) + 225 * mixSnow;
+                let finalB = b * (1 - mixSnow*0.3) + 250 * mixSnow;
+                
+                // glow + drop shadow effect
+                ctx.shadowBlur = 4;
+                ctx.shadowColor = `rgba(100, 180, 255, ${alpha * 0.6})`;
+                ctx.fillStyle = `rgba(${finalR}, ${finalG}, ${finalB}, ${alpha * 0.95})`;
+                ctx.fillText(ch, x, y);
+                // tiny secondary highlight for realism
+                ctx.shadowBlur = 2;
+                ctx.fillStyle = `rgba(255, 255, 240, ${alpha * 0.3})`;
+                ctx.fillText(ch, x-0.7, y-0.5);
+            }
+            // reset shadow
+            ctx.shadowBlur = 0;
+            
+            // optional: light mist overlay
+            ctx.fillStyle = `rgba(15, 25, 45, ${0.12 + SNOWINESS * 0.08})`;
+            ctx.fillRect(0, 0, width, height);
+        }
+        
+        // mouse move for interactive wind / snow shift
+        function onMouseMove(e) {
+            let mx = e.clientX / window.innerWidth;
+            mouseX = Math.min(0.98, Math.max(0.02, mx));
+        }
+        
+        function onTouchMove(e) {
+            if(e.touches.length) {
+                let mx = e.touches[0].clientX / window.innerWidth;
+                mouseX = Math.min(0.98, Math.max(0.02, mx));
+            }
+        }
+        
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+        });
+        
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('touchmove', onTouchMove);
+        
+        resizeCanvas();
+        lastFrameTime = performance.now();
+        requestAnimationFrame(animate);
+        
+        // subtle snowfall/rain sound? no, but visual treat
+        // add style for full immersion
+    })();
+</script>
+</body>
+</html>

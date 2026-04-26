@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>CVVRQ3 // COOKIE CLICKER</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .cookie-game {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .cookie {
+            font-size: 120px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+        
+        .cookie:active {
+            transform: scale(0.95);
+        }
+        
+        .counter {
+            font-size: 48px;
+            margin: 20px 0;
+            color: #ff00ff;
+        }
+        
+        .upgrade {
+            background: #000;
+            border: 1px solid #00ff9d;
+            padding: 10px;
+            margin: 10px;
+            display: inline-block;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upgrade:hover {
+            border-color: #ff00ff;
+            transform: scale(1.05);
+        }
+        
+        .upgrade.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .upgrade-name {
+            font-weight: bold;
+        }
+        
+        .upgrade-cost {
+            color: #00ff9d;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <a href="index.html" class="back-link">&lt; BACK TO MAIN</a>
+    
+    <div class="cookie-game">
+        <h1>BSOD COOKIE CLICKER</h1>
+        <div class="cookie" id="cookie">🍪</div>
+        <div class="counter" id="counter">0</div>
+        <div id="upgrades"></div>
+    </div>
+</div>
+
+<script>
+    let cookies = 0;
+    let clickPower = 1;
+    let autoclickers = 0;
+    
+    const upgrades = [
+        { name: "EXPLORER RESTART", cost: 50, power: 1, type: "click" },
+        { name: "DWM RECOVERY", cost: 100, power: 5, type: "click" },
+        { name: "AUTOCLICKER (1/sec)", cost: 200, power: 1, type: "auto" }
+    ];
+    
+    function saveGame() {
+        localStorage.setItem('cookieData', JSON.stringify({
+            cookies: cookies,
+            clickPower: clickPower,
+            autoclickers: autoclickers
+        }));
+    }
+    
+    function loadGame() {
+        const saved = localStorage.getItem('cookieData');
+        if (saved) {
+            const data = JSON.parse(saved);
+            cookies = data.cookies;
+            clickPower = data.clickPower;
+            autoclickers = data.autoclickers;
+            updateDisplay();
+        }
+    }
+    
+    function updateDisplay() {
+        document.getElementById('counter').innerHTML = Math.floor(cookies);
+        renderUpgrades();
+    }
+    
+    function addCookies(amount) {
+        cookies += amount;
+        updateDisplay();
+        saveGame();
+    }
+    
+    function buyUpgrade(index) {
+        const upgrade = upgrades[index];
+        let cost = upgrade.cost;
+        
+        if (cookies >= cost) {
+            cookies -= cost;
+            
+            if (upgrade.type === "click") {
+                clickPower += upgrade.power;
+            } else if (upgrade.type === "auto") {
+                autoclickers += upgrade.power;
+                // Запускаем интервал если еще не запущен
+                if (autoclickers === upgrade.power) {
+                    startAutoclicker();
+                }
+            }
+            
+            updateDisplay();
+            saveGame();
+        }
+    }
+    
+    function renderUpgrades() {
+        const container = document.getElementById('upgrades');
+        if (!container) return;
+        
+        container.innerHTML = upgrades.map((up, i) => `
+            <div class="upgrade" onclick="buyUpgrade(${i})">
+                <div class="upgrade-name">${up.name}</div>
+                <div class="upgrade-cost">${up.cost} cookies</div>
+            </div>
+        `).join('');
+    }
+    
+    let autoInterval = null;
+    function startAutoclicker() {
+        if (autoInterval) clearInterval(autoInterval);
+        autoInterval = setInterval(() => {
+            addCookies(autoclickers);
+        }, 1000);
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        loadGame();
+        renderUpgrades();
+        startAutoclicker();
+        
+        const cookie = document.getElementById('cookie');
+        cookie.addEventListener('click', () => {
+            addCookies(clickPower);
+            
+            // Анимация
+            cookie.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                cookie.style.transform = '';
+            }, 100);
+        });
+    });
+</script>
+</body>
+</html>

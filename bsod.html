@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CVVRQ3's BSODs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0c10;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            padding: 2rem 1.5rem;
+            color: #eef2f8;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #2a2f3a;
+            padding-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        h1 {
+            font-weight: 500;
+            font-size: 1.7rem;
+            letter-spacing: -0.3px;
+            color: #eef2fc;
+        }
+
+        .stats {
+            font-size: 0.85rem;
+            background: #1e222b;
+            padding: 0.3rem 0.9rem;
+            border-radius: 40px;
+            color: #b9d0f0;
+        }
+
+        .date-group {
+            margin-bottom: 2rem;
+        }
+
+        .group-header {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #7aa9d9;
+            padding: 0.5rem 0 0.75rem 0;
+            margin-bottom: 1.25rem;
+            border-bottom: 2px solid #262c36;
+            letter-spacing: -0.2px;
+            display: flex;
+            align-items: baseline;
+            gap: 0.75rem;
+        }
+
+        .group-header span:first-child {
+            background: #161c24;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #c2dcff;
+        }
+
+        .group-count {
+            font-size: 0.75rem;
+            color: #6f8db0;
+            font-weight: normal;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+        .tile {
+            border-radius: 24px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+            background: #12161f;
+            border: 1px solid #2a2f3c;
+        }
+
+        .tile:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 28px rgba(0, 0, 0, 0.5);
+        }
+        .tile.common {
+            border-left: 4px solid #6c8faa;
+        }
+        .tile.common:hover {
+            border-color: #8bbae0;
+        }
+
+        .tile.uncommon {
+            border-left: 4px solid #5f9e6e;
+            background: linear-gradient(145deg, #12161f 0%, #0f1820 100%);
+        }
+        .tile.uncommon:hover {
+            border-color: #7acf8e;
+            box-shadow: 0 0 8px rgba(90, 190, 110, 0.2);
+        }
+
+        .tile.rare {
+            border-left: 4px solid #4f8bc9;
+            background: radial-gradient(circle at 0% 30%, #14222e, #0f141f);
+            box-shadow: 0 8px 20px rgba(60, 120, 200, 0.2);
+        }
+        .tile.rare .tile-error {
+            text-shadow: 0 0 3px rgba(79, 139, 201, 0.4);
+        }
+        .tile.rare:hover {
+            border-color: #6eaaf0;
+            box-shadow: 0 0 14px rgba(79, 139, 201, 0.3);
+        }
+
+        .tile.epic {
+            border-left: 4px solid #b87ac9;
+            background: linear-gradient(135deg, #141725, #0f111c);
+            box-shadow: 0 8px 22px rgba(180, 100, 210, 0.25);
+            animation: epicPulse 4s infinite ease;
+        }
+        .tile.epic .tile-error {
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            background: rgba(184, 122, 201, 0.15);
+            backdrop-filter: blur(2px);
+        }
+        @keyframes epicPulse {
+            0% { border-left-color: #b87ac9; box-shadow: 0 0 0 0 rgba(184, 122, 201, 0.2);}
+            50% { border-left-color: #d9a0f0; box-shadow: 0 0 10px 2px rgba(184, 122, 201, 0.3);}
+            100% { border-left-color: #b87ac9; box-shadow: 0 0 0 0 rgba(184, 122, 201, 0.2);}
+        }
+
+        .tile.legendary {
+            border-left: 4px solid #e9b85b;
+            background: radial-gradient(ellipse at 20% 30%, #1f1f2a, #0c0e16);
+            box-shadow: 0 0 15px rgba(233, 184, 91, 0.3);
+            position: relative;
+            transition: all 0.25s;
+        }
+        .tile.legendary::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 24px;
+            background: linear-gradient(125deg, rgba(233,184,91,0.1) 0%, rgba(233,184,91,0) 60%);
+            pointer-events: none;
+        }
+        .tile.legendary .tile-error {
+            font-weight: 700;
+            background: rgba(233, 184, 91, 0.2);
+            text-shadow: 0 0 4px #e9b85b;
+            border: 0.5px solid rgba(233, 184, 91, 0.4);
+        }
+        .tile.legendary:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 0 24px rgba(233, 184, 91, 0.5);
+            border-left-color: #f8cf7a;
+        }
+        .tile-content {
+            padding: 1.25rem 1.3rem;
+        }
+
+        .tile-time {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-weight: 500;
+            color: #8dabcf;
+            margin-bottom: 0.65rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .tile-error {
+            font-family: 'SF Mono', 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
+            border-radius: 40px;
+            color: #ffab9e;
+            margin-bottom: 0.9rem;
+            word-break: break-word;
+            background: #231d28;
+            transition: all 0.1s ease;
+        }
+
+        .tile-bugcode {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: #0f141c;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            color: #7bc5ff;
+        }
+
+        .tile-driver {
+            font-size: 0.8rem;
+            color: #cbdae9;
+            margin-top: 0.7rem;
+            border-top: 1px dashed #2a2f3c;
+            padding-top: 0.7rem;
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .driver-label {
+            font-weight: 500;
+            color: #7fa3c7;
+            font-size: 0.7rem;
+            letter-spacing: 0.3px;
+        }
+
+        .driver-name {
+            font-family: monospace;
+            font-size: 0.8rem;
+            background: #1c232e;
+            padding: 0.15rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 500;
+            color: #b8defa;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-card {
+            background: #12161f;
+            max-width: 700px;
+            width: 90%;
+            max-height: 85vh;
+            border-radius: 32px;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.6);
+            overflow-y: auto;
+            padding: 1.8rem 2rem;
+            position: relative;
+            border: 1px solid #2f3643;
+        }
+
+        .modal-card h2 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            padding-right: 1.5rem;
+            word-break: break-word;
+            color: #eef5ff;
+        }
+
+        .detail-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            margin: 1.5rem 0;
+        }
+
+        .detail-row {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #262e3a;
+            padding: 0.6rem 0;
+        }
+
+        .detail-label {
+            width: 130px;
+            font-weight: 600;
+            color: #8bb5e0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .detail-value {
+            flex: 1;
+            font-family: 'SF Mono', monospace;
+            font-size: 0.85rem;
+            word-break: break-word;
+            color: #e0e9f5;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1.2rem;
+            right: 1.6rem;
+            font-size: 1.8rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #98b1ce;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #f0f4fc;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 2rem;
+            color: #90b0d3;
+            font-size: 0.9rem;
+        }
+
+        .load-trigger {
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0 2rem;
+        }
+
+        .end-message {
+            text-align: center;
+            padding: 1.5rem;
+            color: #7c95b5;
+            font-size: 0.85rem;
+            border-top: 1px solid #262e3a;
+        }
+
+        .empty-placeholder {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem;
+            background: #0e121b;
+            border-radius: 2rem;
+            color: #8ba6c6;
+            border: 1px solid #2c3340;
+        }
+
+        button {
+            background: none;
+            border: none;
+        }
+        .rarity-badge {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: rgba(255,255,240,0.06);
+            border-radius: 30px;
+            padding: 0.1rem 0.5rem;
+            margin-left: 0.5rem;
+            color: #bbd4ff;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>cvvrq3's bsods archive</h1>
+        <div class="stats" id="statsCounter">0 records</div>
+    </div>
+    <div id="groupsContainer"></div>
+    <div id="loadTrigger" class="load-trigger"></div>
+</div>
+
+<div id="detailModal" class="modal-overlay">
+    <div class="modal-card">
+        <button class="close-modal" id="closeModalBtn">&times;</button>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<script>
+    const RARITY_MAP = new Map();
+    const commonCodes = [
+        "0x0000000a", "0x0000001e", "0x00000050", "0x000000d1", "0x0000007e", "0x1000007e",
+        "0x0000003b", "0x000000ef", "0x0000001a", "0x000000c2", "0x000000c5"
+    ];
+    const uncommonCodes = [
+        "0x0000004a", "0x00000101", "0x00000018", "0x00000139", "0x0000007f", "0x000000be",
+        "0x0000008e", "0x000000c4", "0x000000ea"
+    ];
+    const rareCodes = [
+        "0x00000133", "0x00000124", "0x00000116", "0x00000117", "0x000000f7", "0x0000009f",
+        "0x0000010d", "0x0000010e", "0x00000113", "0x00000119"
+    ];
+    const epicCodes = [
+        "0xdeaddead", "0xc0000218", "0xc000021a", "0xc0000221", "0x00000109", "0x00000139", "0x00000139",
+        "0x0000007a", "0x00000077"
+    ];
+    const legendaryCodes = [
+        "0x00000124", "0x00000133"
+    ];
+    function computeRarity(record) {
+        const bugCode = (record.bug_code || '').toLowerCase();
+        const bugStr = (record.bug_str || '').toUpperCase();
+        if (bugStr === 'CLOCK_WATCHDOG_TIMEOUT' || bugCode === '0x00000101') return 'legendary';
+        if (bugStr === 'KERNEL_SECURITY_CHECK_FAILURE') return 'legendary';
+        if (bugStr === 'WHEA_UNCORRECTABLE_ERROR' || bugCode === '0x00000124') return 'legendary';
+        if (bugStr === 'DPC_WATCHDOG_VIOLATION' || bugCode === '0x00000133') return 'legendary';
+        if (bugStr === 'CRITICAL_STRUCTURE_CORRUPTION' || bugCode === '0x00000109') return 'epic';
+        if (bugStr === 'SYSTEM_THREAD_EXCEPTION_NOT_HANDLED_M' || bugCode === '0x1000007e') return 'rare';
+        if (commonCodes.includes(bugCode)) return 'common';
+        if (uncommonCodes.includes(bugCode)) return 'uncommon';
+        if (rareCodes.includes(bugCode)) return 'rare';
+        if (epicCodes.includes(bugCode)) return 'epic';
+        if (legendaryCodes.includes(bugCode)) return 'legendary';
+        if (bugStr.includes('IRQL_NOT_LESS_OR_EQUAL')) return 'common';
+        if (bugStr.includes('KMODE_EXCEPTION_NOT_HANDLED')) return 'common';
+        if (bugStr.includes('PAGE_FAULT_IN_NONPAGED_AREA')) return 'common';
+        if (bugStr.includes('DRIVER_IRQL_NOT_LESS_OR_EQUAL')) return 'common';
+        if (bugStr.includes('SYSTEM_SERVICE_EXCEPTION')) return 'uncommon';
+        if (bugStr.includes('REFERENCE_BY_POINTER')) return 'uncommon';
+        if (bugStr.includes('CRITICAL_PROCESS_DIED')) return 'rare';
+        if (bugStr.includes('VIDEO_TDR')) return 'rare';
+        if (bugStr.includes('BUGCODE_USB_DRIVER')) return 'epic';
+        if (bugStr.includes('MANUALLY_INITIATED_CRASH')) return 'legendary';
+        
+        return 'common';
+    }
+
+    let allRecords = [];
+    let loadedFiles = new Set();   
+    let isLoading = false;
+    let hasMore = true;            
+    let fileQueue = [];            
+    let currentQueueIndex = 0;
+
+    const monthsLower = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+    ];
+
+    function generateCandidateFileList() {
+        const candidates = [];
+        const startYear = 2020;
+        const endYear = 2027;
+        for (let year = startYear; year <= endYear; year++) {
+            for (let month of monthsLower) {
+                candidates.push(`${year}${month}.json`);
+            }
+        }
+        candidates.sort((a,b) => {
+            const yearA = parseInt(a.match(/^\d+/)?.[0] || '0');
+            const yearB = parseInt(b.match(/^\d+/)?.[0] || '0');
+            if(yearA !== yearB) return yearB - yearA;
+            const monthA = a.replace(/^\d+/, '').replace('.json','');
+            const monthB = b.replace(/^\d+/, '').replace('.json','');
+            const idxA = monthsLower.indexOf(monthA);
+            const idxB = monthsLower.indexOf(monthB);
+            return idxB - idxA;
+        });
+        return candidates;
+    }
+
+    let fileCandidates = generateCandidateFileList();
+    async function fetchBSODFile(filename) {
+        const basePath = 'bsods/';
+        try {
+            const response = await fetch(`${basePath}${filename}`);
+            if (!response.ok) {
+                if (response.status === 404) return null;
+                throw new Error(`HTTP ${response.status}`);
+            }
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return { filename, records: data };
+            }
+            return null;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function parseRecordDate(record) {
+        const dateStr = record.dump || record.time || '';
+        if (!dateStr) return { dateKey: 'unknown', dateObj: null };
+        const parts = dateStr.split(' ');
+        const datePart = parts[0];
+        if (!datePart) return { dateKey: 'unknown', dateObj: null };
+        const dayMonthYear = datePart.split('.');
+        if (dayMonthYear.length === 3) {
+            const day = dayMonthYear[0];
+            const month = dayMonthYear[1];
+            const year = dayMonthYear[2];
+            const isoKey = `${year}-${month.padStart(2,'0')}-${day.padStart(2,'0')}`;
+            const dateObj = new Date(`${year}-${month}-${day}`);
+            return { dateKey: isoKey, dateObj: isNaN(dateObj.getTime()) ? null : dateObj };
+        }
+        return { dateKey: 'unknown', dateObj: null };
+    }
+
+    function appendRecords(records, filename) {
+        if (!records || records.length === 0) return 0;
+        const enriched = records.map(rec => {
+            const { dateKey, dateObj } = parseRecordDate(rec);
+            const rarity = computeRarity(rec);
+            return { 
+                ...rec, 
+                _source: filename,
+                _dateKey: dateKey,
+                _dateObj: dateObj,
+                _rarity: rarity
+            };
+        });
+        
+        const beforeCount = allRecords.length;
+        allRecords.push(...enriched);
+        
+        allRecords.sort((a,b) => {
+            if (!a._dateObj && !b._dateObj) return 0;
+            if (!a._dateObj) return 1;
+            if (!b._dateObj) return -1;
+            return b._dateObj.getTime() - a._dateObj.getTime();
+        });
+        
+        renderAllGroups();
+        updateStats();
+        return records.length;
+    }
+
+    function groupRecordsByDate(records) {
+        const groups = new Map();
+        for (const rec of records) {
+            const key = rec._dateKey || 'unknown';
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(rec);
+        }
+        const sortedGroups = Array.from(groups.entries()).sort((a,b) => {
+            if (a[0] === 'unknown') return 1;
+            if (b[0] === 'unknown') return -1;
+            return b[0].localeCompare(a[0]);
+        });
+        return sortedGroups;
+    }
+
+    function formatGroupHeader(dateKey) {
+        if (dateKey === 'unknown') return 'Unknown Date';
+        const parts = dateKey.split('-');
+        if (parts.length !== 3) return dateKey;
+        const year = parts[0];
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthName = monthNames[month-1] || 'Invalid';
+        return `${monthName} ${day}, ${year}`;
+    }
+
+    function createTileHtml(record, uniqueId) {
+        const datetimeStr = record.dump || record.time || 'Unknown time';
+        const errorStr = record.bug_str || 'UNKNOWN_ERROR';
+        const bugCode = record.bug_code || '0x00000000';
+        const driverName = record.driver || 'unknown.sys';
+        const rarity = record._rarity || computeRarity(record);
+        
+        const safeError = escapeHtml(errorStr);
+        const safeDateTime = escapeHtml(datetimeStr);
+        const safeBugCode = escapeHtml(bugCode);
+        const safeDriver = escapeHtml(driverName);
+        const recordDataForModal = {
+            dump: record.dump, time: record.time, bug_str: record.bug_str,
+            bug_code: record.bug_code, driver: record.driver, driver_addr: record.driver_addr,
+            desc: record.desc, product: record.product, company: record.company,
+            crash_addr: record.crash_addr, path: record.path, p1: record.p1, p2: record.p2,
+            p3: record.p3, p4: record.p4
+        };
+        
+        return `
+            <div class="tile ${rarity}" data-record-id="${uniqueId}" data-bsod-ref='${escapeHtml(JSON.stringify(recordDataForModal))}'>
+                <div class="tile-content">
+                    <div class="tile-time">
+                        <span>⏲ time:</span> ${safeDateTime}
+                        <span class="rarity-badge">${rarity}</span>
+                    </div>
+                    <div class="tile-error">${safeError}</div>
+                    <div class="tile-bugcode">${safeBugCode}</div>
+                    <div class="tile-driver">
+                        <span class="driver-label">driver:</span>
+                        <span class="driver-name">${safeDriver}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    function renderAllGroups() {
+        const container = document.getElementById('groupsContainer');
+        if (!container) return;
+        
+        const grouped = groupRecordsByDate(allRecords);
+        if (grouped.length === 0 && allRecords.length === 0) {
+            container.innerHTML = `<div class="empty-placeholder">No BSOD records found. Place JSON files in "bsods/" folder.<br>Example: 2026april.json, 2025march.json</div>`;
+            return;
+        }
+        
+        let html = '';
+        for (const [dateKey, recordsInGroup] of grouped) {
+            const displayDate = formatGroupHeader(dateKey);
+            const groupCount = recordsInGroup.length;
+            html += `<div class="date-group" data-group="${dateKey}">`;
+            html += `<div class="group-header">
+                        <span>${displayDate}</span>
+                        <span class="group-count">${groupCount} event${groupCount !== 1 ? 's' : ''}</span>
+                     </div>`;
+            html += `<div class="grid" data-group-grid="${dateKey}">`;
+            for (let i = 0; i < recordsInGroup.length; i++) {
+                const rec = recordsInGroup[i];
+                html += createTileHtml(rec, `g_${dateKey}_${i}`);
+            }
+            html += `</div></div>`;
+        }
+        container.innerHTML = html;
+        attachTileClickListenersDynamic();
+    }
+    
+    function attachTileClickListenersDynamic() {
+        const tiles = document.querySelectorAll('.tile');
+        tiles.forEach(tile => {
+            if (tile.getAttribute('data-listener-attached')) return;
+            tile.setAttribute('data-listener-attached', 'true');
+            tile.addEventListener('click', (e) => {
+                const refJson = tile.getAttribute('data-bsod-ref');
+                if (refJson) {
+                    try {
+                        const recordData = JSON.parse(refJson);
+                        showDetailModal(recordData);
+                    } catch(e) { console.warn(e); }
+                }
+            });
+        });
+    }
+    
+    function showDetailModal(record) {
+        const modal = document.getElementById('detailModal');
+        const modalContentDiv = document.getElementById('modalContent');
+        if (!modalContentDiv) return;
+        
+        const fields = [
+            { label: 'Dump / Time', value: record.dump || record.time || '-' },
+            { label: 'Bug Check String', value: record.bug_str || '(null)' },
+            { label: 'Bug Check Code', value: record.bug_code || '-' },
+            { label: 'Parameter 1', value: record.p1 || '-' },
+            { label: 'Parameter 2', value: record.p2 || '-' },
+            { label: 'Parameter 3', value: record.p3 || '-' },
+            { label: 'Parameter 4', value: record.p4 || '-' },
+            { label: 'Driver', value: record.driver || '-' },
+            { label: 'Driver Address', value: record.driver_addr || '-' },
+            { label: 'Description', value: record.desc || '-' },
+            { label: 'Product', value: record.product || '-' },
+            { label: 'Company', value: record.company || '-' },
+            { label: 'Crash Address', value: record.crash_addr || '-' },
+            { label: 'Dump Path', value: record.path || '-' }
+        ];
+        
+        let detailsHtml = `<h2>BSOD Details</h2><div class="detail-grid">`;
+        for (let f of fields) {
+            if (f.value !== undefined && f.value !== null && f.value !== '') {
+                detailsHtml += `
+                    <div class="detail-row">
+                        <div class="detail-label">${escapeHtml(f.label)}</div>
+                        <div class="detail-value">${escapeHtml(String(f.value))}</div>
+                    </div>
+                `;
+            }
+        }
+        detailsHtml += `</div>`;
+        modalContentDiv.innerHTML = detailsHtml;
+        modal.classList.add('active');
+    }
+
+    function closeModal() {
+        const modal = document.getElementById('detailModal');
+        modal.classList.remove('active');
+    }
+
+    function updateStats() {
+        const statsSpan = document.getElementById('statsCounter');
+        if (statsSpan) {
+            statsSpan.innerText = `${allRecords.length} record${allRecords.length !== 1 ? 's' : ''}`;
+        }
+    }
+
+    async function loadNextFile() {
+        if (isLoading) return;
+        if (!hasMore) return;
+        if (currentQueueIndex >= fileCandidates.length) {
+            hasMore = false;
+            showEndMessage();
+            return;
+        }
+        
+        isLoading = true;
+        const loaderDiv = document.getElementById('loadTrigger');
+        if (loaderDiv) loaderDiv.innerHTML = '<div class="loading-spinner">loading next archive...</div>';
+        
+        let loadedAny = false;
+        while (currentQueueIndex < fileCandidates.length && !loadedAny) {
+            const candidate = fileCandidates[currentQueueIndex];
+            currentQueueIndex++;
+            if (loadedFiles.has(candidate)) continue;
+            
+            const result = await fetchBSODFile(candidate);
+            if (result && result.records && result.records.length > 0) {
+                loadedFiles.add(candidate);
+                const addedCount = appendRecords(result.records, candidate);
+                if (addedCount > 0) loadedAny = true;
+                break;
+            } else {
+                loadedFiles.add(candidate);
+            }
+        }
+        
+        if (!loadedAny) {
+            hasMore = false;
+            if (loaderDiv) loaderDiv.innerHTML = '';
+            showEndMessage();
+        } else {
+            if (loaderDiv) loaderDiv.innerHTML = '';
+        }
+        
+        isLoading = false;
+        if (currentQueueIndex >= fileCandidates.length && !loadedAny) {
+            hasMore = false;
+            showEndMessage();
+        }
+        if (loaderDiv && !hasMore) loaderDiv.innerHTML = '<div class="end-message">end of bsod archive</div>';
+        else if (loaderDiv && hasMore) loaderDiv.innerHTML = '';
+    }
+    
+    function showEndMessage() {
+        const triggerDiv = document.getElementById('loadTrigger');
+        if (triggerDiv && !triggerDiv.querySelector('.end-message')) {
+            triggerDiv.innerHTML = '<div class="end-message">all crash dumps loaded</div>';
+        }
+    }
+    
+    function setupInfiniteScroll() {
+        const sentinel = document.getElementById('loadTrigger');
+        if (!sentinel) return;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !isLoading && hasMore) {
+                    loadNextFile();
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '150px' });
+        observer.observe(sentinel);
+    }
+    
+    function escapeHtml(str) {
+        if (str === undefined || str === null) return '';
+        return String(str).replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
+    async function initialLoad() {
+        isLoading = true;
+        let loadedInitialCount = 0;
+        let tempIndex = 0;
+        while (tempIndex < Math.min(4, fileCandidates.length) && loadedInitialCount === 0) {
+            const cand = fileCandidates[tempIndex];
+            tempIndex++;
+            if (loadedFiles.has(cand)) continue;
+            const result = await fetchBSODFile(cand);
+            if (result && result.records) {
+                loadedFiles.add(cand);
+                const added = appendRecords(result.records, cand);
+                if (added > 0) loadedInitialCount = added;
+                currentQueueIndex = tempIndex;
+                break;
+            } else {
+                loadedFiles.add(cand);
+            }
+        }
+        if (loadedInitialCount === 0) {
+            while (currentQueueIndex < fileCandidates.length && loadedInitialCount === 0) {
+                const cand = fileCandidates[currentQueueIndex];
+                currentQueueIndex++;
+                if (loadedFiles.has(cand)) continue;
+                const result = await fetchBSODFile(cand);
+                if (result && result.records) {
+                    loadedFiles.add(cand);
+                    loadedInitialCount = appendRecords(result.records, cand);
+                    break;
+                } else {
+                    loadedFiles.add(cand);
+                }
+            }
+        }
+        isLoading = false;
+        if (allRecords.length === 0) {
+            document.getElementById('groupsContainer').innerHTML = `<div class="empty-placeholder">No BSOD records found. Place JSON files in "bsods/" folder.<br>Example: 2026april.json, 2025march.json</div>`;
+            document.getElementById('statsCounter').innerText = '0 records';
+            hasMore = false;
+            const triggerDiv = document.getElementById('loadTrigger');
+            if(triggerDiv) triggerDiv.innerHTML = '<div class="end-message">no data found</div>';
+        } else {
+            updateStats();
+            setupInfiniteScroll();
+            setTimeout(() => {
+                const sentinelEl = document.getElementById('loadTrigger');
+                if (sentinelEl && sentinelEl.getBoundingClientRect().top < window.innerHeight) {
+                    if (!isLoading && hasMore) loadNextFile();
+                }
+            }, 200);
+        }
+    }
+
+    function bindModalEvents() {
+        const modal = document.getElementById('detailModal');
+        const closeBtn = document.getElementById('closeModalBtn');
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('active')) closeModal(); });
+    }
+    
+    function init() {
+        bindModalEvents();
+        initialLoad();
+    }
+    
+    init();
+</script>
+</body>
+</html>
